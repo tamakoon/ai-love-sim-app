@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>AI恋愛ライフシム</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; background: #0e0e12; color: #eee; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; }
+  #app { display: flex; flex-direction: column; height: 100%; }
+
+  /* ---- ログイン画面 ---- */
+  #loginScreen { display: flex; flex-direction: column; justify-content: center; padding: 24px; height: 100%; overflow-y: auto; }
+  #loginScreen h1 { font-size: 20px; margin-bottom: 24px; text-align: center; }
+  #loginScreen label { font-size: 13px; color: #999; margin-top: 12px; display: block; }
+  #loginScreen input { width: 100%; padding: 12px; margin-top: 6px; border-radius: 10px; border: 1px solid #444; background: #1c1c22; color: #eee; font-size: 15px; }
+  #loginScreen button { width: 100%; padding: 14px; margin-top: 20px; border: none; border-radius: 12px; background: #ff7a45; color: white; font-size: 16px; font-weight: bold; }
+  #loginError { color: #ff6b6b; font-size: 12px; margin-top: 10px; min-height: 16px; line-height: 1.5; word-break: break-all; }
+  #setupNote { font-size: 11px; color: #666; margin-top: 24px; text-align: center; line-height: 1.6; }
+
+  /* ---- メイン画面 ---- */
+  #mainScreen { display: none; flex-direction: column; height: 100%; }
+  #screens { flex: 1; overflow: hidden; position: relative; }
+  .screen { display: none; flex-direction: column; height: 100%; }
+  .screen.active { display: flex; }
+
+  /* チャット */
+  #chatHeader { padding: 14px 16px; border-bottom: 1px solid #26262e; font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+  #chatHeader .status { font-size: 11px; color: #888; font-weight: normal; }
+  #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .bubble { max-width: 78%; padding: 10px 14px; border-radius: 16px; font-size: 15px; line-height: 1.5; white-space: pre-wrap; }
+  .bubble.character { align-self: flex-start; background: #26262e; border-bottom-left-radius: 4px; }
+  .bubble.user { align-self: flex-end; background: #ff7a45; color: #1a1a1a; border-bottom-right-radius: 4px; }
+  .bubble.system { align-self: center; background: transparent; color: #777; font-size: 12px; }
+  #paramsBar { display: flex; gap: 6px; padding: 8px 16px; overflow-x: auto; border-top: 1px solid #26262e; font-size: 11px; color: #aaa; white-space: nowrap; }
+  #paramsBar span { background: #1c1c22; padding: 4px 8px; border-radius: 8px; flex-shrink: 0; }
+  #inputBar { display: flex; gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid #26262e; }
+  #inputBar textarea { flex: 1; resize: none; border-radius: 20px; border: 1px solid #444; background: #1c1c22; color: #eee; padding: 10px 14px; font-size: 15px; max-height: 100px; }
+  #inputBar button { width: 44px; height: 44px; border-radius: 50%; border: none; background: #ff7a45; color: white; font-size: 18px; }
+  #inputBar button:disabled { background: #555; }
+  .typing { font-size: 13px; color: #888; align-self: flex-start; padding-left: 4px; }
+
+  /* プロフィール */
+  #profileScreen { overflow-y: auto; padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); }
+  .profile-name { font-size: 20px; font-weight: bold; }
+  .profile-sub { font-size: 13px; color: #999; margin-top: 4px; }
+  .profile-section { margin-top: 20px; }
+  .profile-section h3 { font-size: 13px; color: #999; margin: 0 0 8px; }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-card { background: #1c1c22; border-radius: 10px; padding: 10px 12px; }
+  .stat-card .label { font-size: 11px; color: #999; }
+  .stat-card .value { font-size: 18px; font-weight: bold; margin-top: 2px; }
+  .stage-chip { display: inline-block; background: #ff7a45; color: #1a1a1a; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-top: 6px; }
+  #photoBtn { width: 100%; padding: 14px; margin-top: 20px; border: none; border-radius: 12px; background: #ff7a45; color: white; font-size: 15px; font-weight: bold; }
+  #photoBtn:disabled { background: #555; }
+  #photoResult { margin-top: 14px; text-align: center; }
+  #photoResult img { max-width: 100%; border-radius: 12px; }
+  #photoStatus { font-size: 12px; color: #888; margin-top: 8px; text-align: center; min-height: 16px; }
+
+  /* アルバム */
+  #albumScreen { overflow-y: auto; padding: 16px; }
+  #albumGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #albumGrid img { width: 100%; border-radius: 10px; aspect-ratio: 1; object-fit: cover; }
+  #albumEmpty { color: #777; font-size: 13px; text-align: center; margin-top: 40px; }
+
+  /* タブバー */
+  #tabBar { display: flex; border-top: 1px solid #26262e; padding-bottom: env(safe-area-inset-bottom); }
+  #tabBar button { flex: 1; padding: 12px 0; background: none; border: none; color: #777; font-size: 12px; }
+  #tabBar button.active { color: #ff7a45; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <div id="loginScreen">
+    <h1>💬 ログイン</h1>
+    <label>Supabase Project URL</label>
+    <input id="supabaseUrl" type="text" placeholder="https://xxxx.supabase.co" />
+    <label>anon public key</label>
+    <input id="anonKey" type="text" placeholder="eyJhbGciOi..." />
+    <label>Email</label>
+    <input id="email" type="email" placeholder="you@example.com" />
+    <label>Password</label>
+    <input id="password" type="password" placeholder="パスワード" />
+    <button id="loginBtn">ログイン</button>
+    <div id="loginError"></div>
+    <div id="setupNote">入力した内容は、この端末のブラウザ内(localStorage)にのみ保存されます。</div>
+  </div>
+
+  <div id="mainScreen">
+    <div id="screens">
+      <div class="screen active" id="chatScreen">
+        <div id="chatHeader"><span id="characterName">キャラクター</span><span class="status" id="statusText"></span></div>
+        <div id="messages"></div>
+        <div id="paramsBar"></div>
+        <div id="inputBar">
+          <textarea id="messageInput" rows="1" placeholder="メッセージを入力..."></textarea>
+          <button id="sendBtn">↑</button>
+        </div>
+      </div>
+
+      <div class="screen" id="profileScreen">
+        <div class="profile-name" id="pName">-</div>
+        <div class="profile-sub" id="pSub">-</div>
+        <div class="stage-chip" id="pStage">-</div>
+
+        <div class="profile-section">
+          <h3>関係性パラメータ</h3>
+          <div class="stat-grid">
+            <div class="stat-card"><div class="label">好意</div><div class="value" id="pAffection">-</div></div>
+            <div class="stat-card"><div class="label">信頼</div><div class="value" id="pTrust">-</div></div>
+            <div class="stat-card"><div class="label">恋愛感情</div><div class="value" id="pRomance">-</div></div>
+            <div class="stat-card"><div class="label">親密度</div><div class="value" id="pIntimacy">-</div></div>
+          </div>
+        </div>
+
+        <div class="profile-section">
+          <h3>現在の様子</h3>
+          <div id="pState" style="font-size:14px; color:#ccc;">-</div>
+        </div>
+
+        <button id="photoBtn">📷 写真を撮ってもらう</button>
+
+        <div class="profile-section">
+          <h3>服を着せ替える</h3>
+          <input type="file" id="outfitFile" accept="image/*" style="width:100%; padding:10px; border-radius:10px; border:1px solid #444; background:#1c1c22; color:#eee; font-size:13px;" />
+          <button id="outfitBtn" style="width:100%; padding:14px; margin-top:10px; border:none; border-radius:12px; background:#3a3a44; color:white; font-size:15px; font-weight:bold;">👕 この服を着てもらう</button>
+        </div>
+
+        <div id="photoStatus"></div>
+        <div id="photoResult"></div>
+      </div>
+
+      <div class="screen" id="albumScreen">
+        <div id="albumGrid"></div>
+        <div id="albumEmpty" style="display:none;">まだ写真がありません</div>
+      </div>
+    </div>
+
+    <div id="tabBar">
+      <button id="tabChat" class="active">💬 チャット</button>
+      <button id="tabProfile">👤 プロフィール</button>
+      <button id="tabAlbum">🖼 アルバム</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const CHARACTER_ID = "00000000-0000-0000-0000-000000000001";
+const CHANNEL = "line";
+const STORAGE_KEY = "ailove_session_v1";
+const $ = (id) => document.getElementById(id);
+let session = null;
+
+function loadSession() {
+  try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) session = JSON.parse(raw); } catch (e) {}
+}
+function saveSession() { localStorage.setItem(STORAGE_KEY, JSON.stringify(session)); }
+
+function showMain() {
+  $('loginScreen').style.display = 'none';
+  $('mainScreen').style.display = 'flex';
+  refreshSession().finally(() => {
+    loadHistory();
+    loadProfile();
+  });
+}
+
+async function refreshSession() {
+  if (!session || !session.refreshToken) return;
+  try {
+    const res = await fetch(`${session.supabaseUrl}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: session.anonKey },
+      body: JSON.stringify({ refresh_token: session.refreshToken }),
+    });
+    const data = await res.json();
+    if (res.ok && data.access_token) {
+      session.accessToken = data.access_token;
+      session.refreshToken = data.refresh_token;
+      saveSession();
+    } else {
+      showLogin('セッションが切れました。もう一度ログインしてください。');
+    }
+  } catch (e) {}
+}
+function showLogin(errorMsg) {
+  $('mainScreen').style.display = 'none';
+  $('loginScreen').style.display = 'flex';
+  if (errorMsg) $('loginError').textContent = errorMsg;
+}
+
+function switchTab(name) {
+  ['chat','profile','album'].forEach(t => {
+    $(t + 'Screen').classList.toggle('active', t === name);
+    $('tab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === name);
+  });
+  if (name === 'profile') loadProfile();
+  if (name === 'album') loadAlbum();
+}
+$('tabChat').addEventListener('click', () => switchTab('chat'));
+$('tabProfile').addEventListener('click', () => switchTab('profile'));
+$('tabAlbum').addEventListener('click', () => switchTab('album'));
+
+$('loginBtn').addEventListener('click', async () => {
+  const supabaseUrl = $('supabaseUrl').value.replace(/\s+/g, '').replace(/\/+$/, '');
+  const anonKey = $('anonKey').value.replace(/\s+/g, '');
+  const email = $('email').value.trim();
+  const password = $('password').value;
+  if (!supabaseUrl || !anonKey || !email || !password) { $('loginError').textContent = '全項目を入力してください'; return; }
+
+  $('loginError').innerHTML =
+    `診断: URL長=${supabaseUrl.length}文字 / anonKey長=${anonKey.length}文字<br>` +
+    `URL末尾5文字: "${supabaseUrl.slice(-5)}" / anonKey先頭10文字: "${anonKey.slice(0, 10)}"<br>` +
+    `送信中...`;
+  $('loginBtn').disabled = true; $('loginBtn').textContent = 'ログイン中...';
+
+  let res;
+  try {
+    res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', apikey: anonKey },
+      body: JSON.stringify({ email, password }),
+    });
+  } catch (e) {
+    $('loginError').innerHTML =
+      `診断: URL長=${supabaseUrl.length}文字 / anonKey長=${anonKey.length}文字<br>` +
+      `fetch自体が失敗: ${e.name} - ${e.message}<br>` +
+      `使用URL: ${supabaseUrl}/auth/v1/token?grant_type=password`;
+    $('loginBtn').disabled = false; $('loginBtn').textContent = 'ログイン';
+    return;
+  }
+
+  try {
+    const data = await res.json();
+    if (!res.ok) { $('loginError').textContent = 'ログイン失敗(status ' + res.status + '): ' + (data.error_description || data.msg || JSON.stringify(data)); return; }
+    session = { supabaseUrl, anonKey, accessToken: data.access_token, refreshToken: data.refresh_token };
+    saveSession();
+    showMain();
+  } catch (e) {
+    $('loginError').textContent = 'レスポンス解析エラー: ' + e.message;
+  } finally {
+    $('loginBtn').disabled = false; $('loginBtn').textContent = 'ログイン';
+  }
+});
+
+function addBubble(role, text) {
+  const el = document.createElement('div');
+  el.className = 'bubble ' + role;
+  el.textContent = text;
+  $('messages').appendChild(el);
+  $('messages').scrollTop = $('messages').scrollHeight;
+  return el;
+}
+function updateParamsBar(stage, params) {
+  if (!params) return;
+  $('paramsBar').innerHTML = `<span>stage: ${stage}</span><span>好意 ${params.affection}</span><span>信頼 ${params.trust}</span><span>恋愛感情 ${params.romance}</span><span>親密度 ${params.intimacy}</span><span>気分: ${params.current_mood ?? ''}</span>`;
+}
+function loadHistory() { $('messages').innerHTML = ''; addBubble('system', '会話をはじめましょう'); }
+
+async function sendMessage() {
+  const text = $('messageInput').value.trim();
+  if (!text || !session) return;
+  await refreshSession();
+  $('messageInput').value = '';
+  $('sendBtn').disabled = true;
+  addBubble('user', text);
+  const typing = document.createElement('div');
+  typing.className = 'typing'; typing.textContent = '...入力中';
+  $('messages').appendChild(typing); $('messages').scrollTop = $('messages').scrollHeight;
+
+  try {
+    const res = await fetch(`${session.supabaseUrl}/functions/v1/chat-reply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}`, apikey: session.anonKey },
+      body: JSON.stringify({ character_id: CHARACTER_ID, channel: CHANNEL, message_text: text }),
+    });
+    const data = await res.json();
+    typing.remove();
+    if (!res.ok) { addBubble('system', 'エラー: ' + (data.error || JSON.stringify(data))); return; }
+    addBubble('character', data.reply);
+    updateParamsBar(data.stage, data.parameters);
+  } catch (e) {
+    typing.remove();
+    addBubble('system', '通信エラー: ' + e.message);
+  } finally {
+    $('sendBtn').disabled = false;
+  }
+}
+$('sendBtn').addEventListener('click', sendMessage);
+$('messageInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+
+async function restGet(path) {
+  const res = await fetch(`${session.supabaseUrl}/rest/v1/${path}`, {
+    headers: { apikey: session.anonKey, Authorization: `Bearer ${session.accessToken}` },
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function loadProfile() {
+  if (!session) return;
+  await refreshSession();
+  try {
+    const [chars, states, rels] = await Promise.all([
+      restGet(`characters?id=eq.${CHARACTER_ID}&select=*`),
+      restGet(`character_state?character_id=eq.${CHARACTER_ID}&select=*`),
+      restGet(`relationships?character_id=eq.${CHARACTER_ID}&select=*,relationship_parameters(*)`),
+    ]);
+    const character = chars[0];
+    const state = states[0];
+    const rel = rels[0];
+    const params = rel ? (Array.isArray(rel.relationship_parameters) ? rel.relationship_parameters[0] : rel.relationship_parameters) : null;
+
+    if (character) {
+      $('pName').textContent = character.name;
+      $('pSub').textContent = [character.occupation, character.base_atmosphere].filter(Boolean).join(' / ');
+      $('characterName').textContent = character.name;
+    }
+    if (rel) $('pStage').textContent = rel.stage;
+    if (params) {
+      $('pAffection').textContent = params.affection;
+      $('pTrust').textContent = params.trust;
+      $('pRomance').textContent = params.romance;
+      $('pIntimacy').textContent = params.intimacy;
+    }
+    if (state) {
+      $('pState').textContent = [state.current_activity, state.current_mood].filter(Boolean).join(' / ') || '情報なし';
+    }
+  } catch (e) {
+    $('pState').textContent = 'プロフィール取得エラー: ' + e.message;
+  }
+}
+
+$('photoBtn').addEventListener('click', async () => {
+  if (!session) return;
+  await refreshSession();
+  $('photoBtn').disabled = true;
+  $('photoStatus').textContent = '生成中...(10〜20秒ほどかかります)';
+  $('photoResult').innerHTML = '';
+  try {
+    const res = await fetch(`${session.supabaseUrl}/functions/v1/generate-photo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}`, apikey: session.anonKey },
+      body: JSON.stringify({ character_id: CHARACTER_ID }),
+    });
+    const data = await res.json();
+    if (!res.ok) { $('photoStatus').textContent = 'エラー: ' + (data.error || JSON.stringify(data)); return; }
+    $('photoStatus').textContent = data.is_reference_bootstrap ? '基準となる顔写真を生成しました' : '写真が届きました';
+    $('photoResult').innerHTML = `<img src="${data.url}" />`;
+  } catch (e) {
+    $('photoStatus').textContent = '通信エラー: ' + e.message;
+  } finally {
+    $('photoBtn').disabled = false;
+  }
+});
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+$('outfitBtn').addEventListener('click', async () => {
+  if (!session) return;
+  const file = $('outfitFile').files[0];
+  if (!file) { $('photoStatus').textContent = '服の画像を選んでください'; return; }
+
+  await refreshSession();
+  $('outfitBtn').disabled = true;
+  $('photoStatus').textContent = '着せ替え中...(10〜20秒ほどかかります)';
+  $('photoResult').innerHTML = '';
+
+  try {
+    const base64 = await fileToBase64(file);
+    const res = await fetch(`${session.supabaseUrl}/functions/v1/generate-photo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}`, apikey: session.anonKey },
+      body: JSON.stringify({
+        character_id: CHARACTER_ID,
+        clothing_image_base64: base64,
+        clothing_mime_type: file.type || 'image/jpeg',
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) { $('photoStatus').textContent = 'エラー: ' + (data.error || JSON.stringify(data)); return; }
+    $('photoStatus').textContent = 'その服を着た写真が届きました';
+    $('photoResult').innerHTML = `<img src="${data.url}" />`;
+  } catch (e) {
+    $('photoStatus').textContent = '通信エラー: ' + e.message;
+  } finally {
+    $('outfitBtn').disabled = false;
+  }
+});
+
+async function loadAlbum() {
+  if (!session) return;
+  await refreshSession();
+  $('albumGrid').innerHTML = '';
+  $('albumEmpty').style.display = 'none';
+  try {
+    const res = await fetch(`${session.supabaseUrl}/functions/v1/list-photos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}`, apikey: session.anonKey },
+      body: JSON.stringify({ character_id: CHARACTER_ID }),
+    });
+    const data = await res.json();
+    if (!res.ok) { $('albumEmpty').style.display = 'block'; $('albumEmpty').textContent = 'エラー: ' + (data.error || ''); return; }
+    if (!data.photos || data.photos.length === 0) { $('albumEmpty').style.display = 'block'; return; }
+    data.photos.forEach(p => {
+      const img = document.createElement('img');
+      img.src = p.url;
+      $('albumGrid').appendChild(img);
+    });
+  } catch (e) {
+    $('albumEmpty').style.display = 'block';
+    $('albumEmpty').textContent = '通信エラー: ' + e.message;
+  }
+}
+
+loadSession();
+if (session && session.accessToken) { showMain(); } else { showLogin(); }
+</script>
+
+</body>
+</html>
