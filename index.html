@@ -17,7 +17,6 @@
   html, body { height: 100%; margin: 0; background: #0e0e12; color: #eee; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; }
   #app { display: flex; flex-direction: column; height: 100%; }
 
-  /* ---- ログイン画面 ---- */
   #loginScreen { display: flex; flex-direction: column; justify-content: center; padding: 24px; height: 100%; overflow-y: auto; }
   #loginScreen h1 { font-size: 20px; margin-bottom: 24px; text-align: center; }
   #loginScreen label { font-size: 13px; color: #999; margin-top: 12px; display: block; }
@@ -26,13 +25,11 @@
   #loginError { color: #ff6b6b; font-size: 12px; margin-top: 10px; min-height: 16px; line-height: 1.5; word-break: break-all; }
   #setupNote { font-size: 11px; color: #666; margin-top: 24px; text-align: center; line-height: 1.6; }
 
-  /* ---- メイン画面 ---- */
   #mainScreen { display: none; flex-direction: column; height: 100%; }
   #screens { flex: 1; overflow: hidden; position: relative; }
   .screen { display: none; flex-direction: column; height: 100%; }
   .screen.active { display: flex; }
 
-  /* チャット */
   #chatHeader { padding: 14px 16px; border-bottom: 1px solid #26262e; font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
   #chatHeader .status { font-size: 11px; color: #888; font-weight: normal; }
   #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
@@ -48,7 +45,6 @@
   #inputBar button:disabled { background: #555; }
   .typing { font-size: 13px; color: #888; align-self: flex-start; padding-left: 4px; }
 
-  /* プロフィール */
   #profileScreen { overflow-y: auto; padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); }
   .profile-name { font-size: 20px; font-weight: bold; }
   .profile-sub { font-size: 13px; color: #999; margin-top: 4px; }
@@ -65,13 +61,11 @@
   #photoResult img { max-width: 100%; border-radius: 12px; }
   #photoStatus { font-size: 12px; color: #888; margin-top: 8px; text-align: center; min-height: 16px; }
 
-  /* アルバム */
   #albumScreen { overflow-y: auto; padding: 16px; }
   #albumGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   #albumGrid img { width: 100%; border-radius: 10px; aspect-ratio: 1; object-fit: cover; }
   #albumEmpty { color: #777; font-size: 13px; text-align: center; margin-top: 40px; }
 
-  /* タブバー */
   #tabBar { display: flex; border-top: 1px solid #26262e; padding-bottom: env(safe-area-inset-bottom); }
   #tabBar button { flex: 1; padding: 12px 0; background: none; border: none; color: #777; font-size: 12px; }
   #tabBar button.active { color: #ff7a45; font-weight: bold; }
@@ -109,6 +103,28 @@
       </div>
 
       <div class="screen" id="profileScreen">
+        <div class="profile-section" style="margin-top:0;">
+          <h3>キャラクター</h3>
+          <select id="characterSelect" style="width:100%; padding:10px; border-radius:10px; border:1px solid #444; background:#1c1c22; color:#eee; font-size:14px;"></select>
+          <button id="showCreateFormBtn" style="width:100%; padding:10px; margin-top:8px; border:none; border-radius:10px; background:#3a3a44; color:white; font-size:13px;">＋ 新しいキャラクターを追加</button>
+        </div>
+
+        <div class="profile-section" id="createCharacterForm" style="display:none; background:#1c1c22; border-radius:12px; padding:12px;">
+          <h3 style="margin-top:0;">新しいキャラクターを追加</h3>
+          <label style="font-size:12px; color:#999;">名前</label>
+          <input id="newCharName" type="text" style="width:100%; padding:8px; margin-top:4px; margin-bottom:8px; border-radius:8px; border:1px solid #444; background:#111; color:#eee;" />
+          <label style="font-size:12px; color:#999;">職業</label>
+          <input id="newCharOccupation" type="text" style="width:100%; padding:8px; margin-top:4px; margin-bottom:8px; border-radius:8px; border:1px solid #444; background:#111; color:#eee;" />
+          <label style="font-size:12px; color:#999;">雰囲気(性格の方向性)</label>
+          <input id="newCharAtmosphere" type="text" style="width:100%; padding:8px; margin-top:4px; margin-bottom:8px; border-radius:8px; border:1px solid #444; background:#111; color:#eee;" />
+          <label style="font-size:12px; color:#999;">性格の詳細(1行1項目、"キー: 値"の形式。任意)</label>
+          <textarea id="newCharTraits" rows="3" placeholder="趣味: 読書&#10;話し方: 丁寧" style="width:100%; padding:8px; margin-top:4px; margin-bottom:8px; border-radius:8px; border:1px solid #444; background:#111; color:#eee;"></textarea>
+          <label style="font-size:12px; color:#999;">顔写真(このキャラクターの基準画像として使われます)</label>
+          <input type="file" id="newCharFace" accept="image/*" style="width:100%; padding:8px; margin-top:4px; margin-bottom:10px; border-radius:8px; border:1px solid #444; background:#111; color:#eee; font-size:12px;" />
+          <button id="submitCreateCharBtn" style="width:100%; padding:12px; border:none; border-radius:10px; background:#ff7a45; color:white; font-weight:bold;">作成する</button>
+          <div id="createCharStatus" style="font-size:12px; color:#888; margin-top:8px;"></div>
+        </div>
+
         <div class="profile-name" id="pName">-</div>
         <div class="profile-sub" id="pSub">-</div>
         <div class="stage-chip" id="pStage">-</div>
@@ -136,6 +152,12 @@
           <button id="outfitBtn" style="width:100%; padding:14px; margin-top:10px; border:none; border-radius:12px; background:#3a3a44; color:white; font-size:15px; font-weight:bold;">👕 この服を着てもらう</button>
         </div>
 
+        <div class="profile-section">
+          <h3>髪型・髪色を変える</h3>
+          <input type="text" id="appearanceChangeInput" placeholder="例: ショートボブにする / 髪色をピンクにする" style="width:100%; padding:10px; border-radius:10px; border:1px solid #444; background:#1c1c22; color:#eee; font-size:13px;" />
+          <button id="appearanceChangeBtn" style="width:100%; padding:14px; margin-top:10px; border:none; border-radius:12px; background:#3a3a44; color:white; font-size:15px; font-weight:bold;">✂️ この見た目にする</button>
+        </div>
+
         <div id="photoStatus"></div>
         <div id="photoResult"></div>
       </div>
@@ -156,11 +178,18 @@
 </div>
 
 <script>
-const CHARACTER_ID = "00000000-0000-0000-0000-000000000001";
+const DEFAULT_CHARACTER_ID = "00000000-0000-0000-0000-000000000001";
 const CHANNEL = "line";
 const STORAGE_KEY = "ailove_session_v1";
+const ACTIVE_CHARACTER_KEY = "ailove_active_character_v1";
 const $ = (id) => document.getElementById(id);
 let session = null;
+let CHARACTER_ID = localStorage.getItem(ACTIVE_CHARACTER_KEY) || DEFAULT_CHARACTER_ID;
+
+function setActiveCharacter(id) {
+  CHARACTER_ID = id;
+  localStorage.setItem(ACTIVE_CHARACTER_KEY, id);
+}
 
 function loadSession() {
   try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) session = JSON.parse(raw); } catch (e) {}
@@ -173,6 +202,7 @@ function showMain() {
   refreshSession().finally(() => {
     loadHistory();
     loadProfile();
+    loadCharacterList();
   });
 }
 
@@ -190,12 +220,9 @@ async function refreshSession() {
       session.refreshToken = data.refresh_token;
       saveSession();
     } else {
-      // リフレッシュにも失敗した場合はログインし直してもらう
       showLogin('セッションが切れました。もう一度ログインしてください。');
     }
-  } catch (e) {
-    // 通信エラー時はそのまま既存トークンで続行を試みる
-  }
+  } catch (e) {}
 }
 function showLogin(errorMsg) {
   $('mainScreen').style.display = 'none';
@@ -203,20 +230,18 @@ function showLogin(errorMsg) {
   if (errorMsg) $('loginError').textContent = errorMsg;
 }
 
-/* ---------------- タブ切り替え ---------------- */
 function switchTab(name) {
   ['chat','profile','album'].forEach(t => {
     $(t + 'Screen').classList.toggle('active', t === name);
     $('tab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === name);
   });
-  if (name === 'profile') loadProfile();
+  if (name === 'profile') { loadProfile(); loadCharacterList(); }
   if (name === 'album') loadAlbum();
 }
 $('tabChat').addEventListener('click', () => switchTab('chat'));
 $('tabProfile').addEventListener('click', () => switchTab('profile'));
 $('tabAlbum').addEventListener('click', () => switchTab('album'));
 
-/* ---------------- ログイン ---------------- */
 $('loginBtn').addEventListener('click', async () => {
   const supabaseUrl = $('supabaseUrl').value.replace(/\s+/g, '').replace(/\/+$/, '');
   const anonKey = $('anonKey').value.replace(/\s+/g, '');
@@ -258,7 +283,6 @@ $('loginBtn').addEventListener('click', async () => {
   }
 });
 
-/* ---------------- チャット ---------------- */
 function addBubble(role, text) {
   const el = document.createElement('div');
   el.className = 'bubble ' + role;
@@ -305,7 +329,6 @@ async function sendMessage() {
 $('sendBtn').addEventListener('click', sendMessage);
 $('messageInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
 
-/* ---------------- プロフィール ---------------- */
 async function restGet(path) {
   const res = await fetch(`${session.supabaseUrl}/rest/v1/${path}`, {
     headers: { apikey: session.anonKey, Authorization: `Bearer ${session.accessToken}` },
@@ -347,6 +370,117 @@ async function loadProfile() {
     $('pState').textContent = 'プロフィール取得エラー: ' + e.message;
   }
 }
+
+async function loadCharacterList() {
+  if (!session) return;
+  try {
+    const chars = await restGet(`characters?status=eq.active&select=id,name&order=name`);
+    const select = $('characterSelect');
+    select.innerHTML = '';
+    chars.forEach((c) => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.name;
+      if (c.id === CHARACTER_ID) opt.selected = true;
+      select.appendChild(opt);
+    });
+  } catch (e) {
+    console.error('キャラクター一覧取得エラー', e);
+  }
+}
+
+$('characterSelect').addEventListener('change', (e) => {
+  setActiveCharacter(e.target.value);
+  loadProfile();
+  loadHistory();
+});
+
+$('showCreateFormBtn').addEventListener('click', () => {
+  const form = $('createCharacterForm');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+});
+
+$('submitCreateCharBtn').addEventListener('click', async () => {
+  if (!session) return;
+  const name = $('newCharName').value.trim();
+  const occupation = $('newCharOccupation').value.trim();
+  const atmosphere = $('newCharAtmosphere').value.trim();
+  const traitsRaw = $('newCharTraits').value.trim();
+  const file = $('newCharFace').files[0];
+
+  if (!name) { $('createCharStatus').textContent = '名前を入力してください'; return; }
+  if (!file) { $('createCharStatus').textContent = '顔写真を選んでください'; return; }
+
+  const personalityTraits = traitsRaw
+    .split('\n')
+    .map((line) => line.split(':'))
+    .filter((parts) => parts.length >= 2)
+    .map((parts) => ({ trait_key: parts[0].trim(), trait_value: parts.slice(1).join(':').trim() }));
+
+  await refreshSession();
+  $('submitCreateCharBtn').disabled = true;
+  $('createCharStatus').textContent = '作成中...';
+
+  try {
+    const base64 = await fileToBase64(file);
+    const res = await fetch(`${session.supabaseUrl}/functions/v1/create-character`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}`, apikey: session.anonKey },
+      body: JSON.stringify({
+        name,
+        occupation: occupation || null,
+        base_atmosphere: atmosphere || null,
+        personality_traits: personalityTraits,
+        face_image_base64: base64,
+        face_image_mime_type: file.type || 'image/jpeg',
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) { $('createCharStatus').textContent = 'エラー: ' + (data.error || JSON.stringify(data)); return; }
+
+    $('createCharStatus').textContent = `「${data.name}」を作成しました`;
+    setActiveCharacter(data.character_id);
+    await loadCharacterList();
+    loadProfile();
+    loadHistory();
+    $('createCharacterForm').style.display = 'none';
+    $('newCharName').value = '';
+    $('newCharOccupation').value = '';
+    $('newCharAtmosphere').value = '';
+    $('newCharTraits').value = '';
+    $('newCharFace').value = '';
+  } catch (e) {
+    $('createCharStatus').textContent = '通信エラー: ' + e.message;
+  } finally {
+    $('submitCreateCharBtn').disabled = false;
+  }
+});
+
+$('appearanceChangeBtn').addEventListener('click', async () => {
+  if (!session) return;
+  const appearanceChange = $('appearanceChangeInput').value.trim();
+  if (!appearanceChange) { $('photoStatus').textContent = '変更したい髪型・髪色を入力してください'; return; }
+
+  await refreshSession();
+  $('appearanceChangeBtn').disabled = true;
+  $('photoStatus').textContent = '生成中...(10〜20秒ほどかかります)';
+  $('photoResult').innerHTML = '';
+  try {
+    const res = await fetch(`${session.supabaseUrl}/functions/v1/generate-photo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}`, apikey: session.anonKey },
+      body: JSON.stringify({ character_id: CHARACTER_ID, appearance_change: appearanceChange }),
+    });
+    const data = await res.json();
+    if (!res.ok) { $('photoStatus').textContent = 'エラー: ' + (data.error || JSON.stringify(data)); return; }
+    $('photoStatus').textContent = '見た目を変更した写真が届きました';
+    $('photoResult').innerHTML = `<img src="${data.url}" />`;
+  } catch (e) {
+    $('photoStatus').textContent = '通信エラー: ' + e.message;
+  } finally {
+    $('appearanceChangeBtn').disabled = false;
+  }
+});
 
 $('photoBtn').addEventListener('click', async () => {
   if (!session) return;
@@ -412,7 +546,6 @@ $('outfitBtn').addEventListener('click', async () => {
   }
 });
 
-/* ---------------- アルバム ---------------- */
 async function loadAlbum() {
   if (!session) return;
   await refreshSession();
@@ -438,7 +571,6 @@ async function loadAlbum() {
   }
 }
 
-/* ---------------- 起動 ---------------- */
 loadSession();
 if (session && session.accessToken) { showMain(); } else { showLogin(); }
 

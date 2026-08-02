@@ -6,6 +6,7 @@
 //   character-reference-assets バケットに保存 + character_assetsに記録する
 // - 2回目以降: 保存済みの基準画像を参照画像として渡し、
 //   同一人物を保ったまま状況（気分・行動・occasion）に応じた新しい写真を生成する
+// - appearance_change が指定されていれば、髪型・髪色の変更も反映する
 // - 生成結果は character-photos バケットに保存し、imagesテーブルに記録する
 // - レスポンスとして、その場で表示できる期限付き署名URLを返す
 
@@ -61,6 +62,7 @@ Deno.serve(async (req: Request) => {
 
     const characterId = body?.character_id;
     const occasion = body?.occasion ?? null;
+    const appearanceChange: string | null = body?.appearance_change ?? null;
     const clothingImageBase64: string | null = body?.clothing_image_base64 ?? null;
     const clothingMimeType: string = body?.clothing_mime_type ?? "image/jpeg";
     const hasClothing = Boolean(clothingImageBase64);
@@ -113,11 +115,12 @@ IMPORTANT: Do not include any text, captions, name tags, watermarks, logos, subt
     } else if (hasClothing) {
       promptText = `
 You are given two reference images.
-Reference image 1 is a photo of a woman's face and identity — keep her face, identity, hair, and body type exactly the same as reference image 1.
+Reference image 1 is a photo of a woman's face and identity — keep her face, identity, and body type exactly the same as reference image 1.
 Reference image 2 shows a clothing item.
 Generate a new authentic front-camera selfie photo (or mirror selfie) of the same person from reference image 1, now wearing the clothing item shown in reference image 2, naturally fitted to her body and pose.
 This must look like an actual photo captured by her own smartphone's front-facing camera or a mirror selfie — NOT a third-person photo of someone taking a selfie.
 Additional context to reflect naturally if relevant: ${contextLine || "a casual everyday moment"}.
+${appearanceChange ? `Also apply this hairstyle/hair color change while keeping the same face: ${appearanceChange}.` : "Keep her hairstyle and hair color the same as reference image 1."}
 IMPORTANT: Do not include any text, captions, name tags, watermarks, logos, subtitles, or written characters of any kind anywhere in the image. The image must be a plain photo with no overlaid text or UI elements.
 `.trim();
     } else {
@@ -128,6 +131,7 @@ Choose ONE of these two authentic formats naturally:
 (1) Direct front-camera selfie: close-up framing where her face fills much of the frame, slight wide-angle lens distortion typical of phone front cameras, extended-arm perspective, phone barely visible or not visible at all.
 (2) Mirror selfie: her reflection in a bathroom or bedroom mirror, phone visibly held up in front of her face in the reflection.
 Change the pose, expression, outfit, and background to naturally match this context: ${contextLine || "a casual everyday moment"}.
+${appearanceChange ? `Also apply this hairstyle/hair color change while keeping the same face: ${appearanceChange}.` : "Keep her hairstyle and hair color the same as the reference photo."}
 Style: natural everyday phone-camera selfie, not overly posed, soft natural lighting.
 IMPORTANT: Do not include any text, captions, name tags, watermarks, logos, subtitles, or written characters of any kind anywhere in the image. The image must be a plain photo with no overlaid text or UI elements.
 `.trim();
@@ -222,6 +226,7 @@ IMPORTANT: Do not include any text, captions, name tags, watermarks, logos, subt
           activity: state?.current_activity ?? null,
           mood: state?.current_mood ?? null,
           occasion,
+          appearance_change: appearanceChange,
           is_reference_bootstrap: !hasReference,
           is_clothing_swap: hasClothing,
         },
