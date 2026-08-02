@@ -32,11 +32,13 @@
 
   #chatHeader { padding: 14px 16px; border-bottom: 1px solid #26262e; font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
   #chatHeader .status { font-size: 11px; color: #888; font-weight: normal; }
-  #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; background: #000; }
   .bubble { max-width: 78%; padding: 10px 14px; border-radius: 16px; font-size: 15px; line-height: 1.5; white-space: pre-wrap; }
-  .bubble.character { align-self: flex-start; background: #26262e; border-bottom-left-radius: 4px; }
-  .bubble.user { align-self: flex-end; background: #ff7a45; color: #1a1a1a; border-bottom-right-radius: 4px; }
+  .bubble.character { align-self: flex-start; background: #262626; color: #eee; border-bottom-left-radius: 4px; }
+  .bubble.user { align-self: flex-end; background: #3ddc61; color: #10210f; border-bottom-right-radius: 4px; }
   .bubble.system { align-self: center; background: transparent; color: #777; font-size: 12px; }
+  .bubble.photo { padding: 4px; max-width: 60%; }
+  .bubble.photo img { display: block; width: 100%; border-radius: 12px; }
   #paramsBar { display: flex; gap: 6px; padding: 8px 16px; overflow-x: auto; border-top: 1px solid #26262e; font-size: 11px; color: #aaa; white-space: nowrap; }
   #paramsBar span { background: #1c1c22; padding: 4px 8px; border-radius: 8px; flex-shrink: 0; }
   #inputBar { display: flex; gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid #26262e; }
@@ -97,6 +99,7 @@
         <div id="messages"></div>
         <div id="paramsBar"></div>
         <div id="inputBar">
+          <button id="chatPhotoBtn" style="background:#262626;">📷</button>
           <textarea id="messageInput" rows="1" placeholder="メッセージを入力..."></textarea>
           <button id="sendBtn">↑</button>
         </div>
@@ -291,11 +294,46 @@ function addBubble(role, text) {
   $('messages').scrollTop = $('messages').scrollHeight;
   return el;
 }
+function addImageBubble(role, url) {
+  const el = document.createElement('div');
+  el.className = 'bubble ' + role + ' photo';
+  const img = document.createElement('img');
+  img.src = url;
+  el.appendChild(img);
+  $('messages').appendChild(el);
+  $('messages').scrollTop = $('messages').scrollHeight;
+  return el;
+}
 function updateParamsBar(stage, params) {
   if (!params) return;
   $('paramsBar').innerHTML = `<span>stage: ${stage}</span><span>好意 ${params.affection}</span><span>信頼 ${params.trust}</span><span>恋愛感情 ${params.romance}</span><span>親密度 ${params.intimacy}</span><span>気分: ${params.current_mood ?? ''}</span>`;
 }
 function loadHistory() { $('messages').innerHTML = ''; addBubble('system', '会話をはじめましょう'); }
+
+$('chatPhotoBtn').addEventListener('click', async () => {
+  if (!session) return;
+  await refreshSession();
+  $('chatPhotoBtn').disabled = true;
+  const typing = document.createElement('div');
+  typing.className = 'typing'; typing.textContent = '写真を送ってくれています...';
+  $('messages').appendChild(typing); $('messages').scrollTop = $('messages').scrollHeight;
+  try {
+    const res = await fetch(`${session.supabaseUrl}/functions/v1/generate-photo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}`, apikey: session.anonKey },
+      body: JSON.stringify({ character_id: CHARACTER_ID }),
+    });
+    const data = await res.json();
+    typing.remove();
+    if (!res.ok) { addBubble('system', 'エラー: ' + (data.error || JSON.stringify(data))); return; }
+    addImageBubble('character', data.url);
+  } catch (e) {
+    typing.remove();
+    addBubble('system', '通信エラー: ' + e.message);
+  } finally {
+    $('chatPhotoBtn').disabled = false;
+  }
+});
 
 async function sendMessage() {
   const text = $('messageInput').value.trim();
