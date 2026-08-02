@@ -4,6 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
 <title>AI恋愛ライフシム</title>
+
+<!-- PWA対応 -->
+<link rel="manifest" href="./manifest.json" />
+<link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="恋愛シム" />
+<meta name="theme-color" content="#0e0e12" />
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; margin: 0; background: #0e0e12; color: #eee; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; }
@@ -182,9 +190,12 @@ async function refreshSession() {
       session.refreshToken = data.refresh_token;
       saveSession();
     } else {
+      // リフレッシュにも失敗した場合はログインし直してもらう
       showLogin('セッションが切れました。もう一度ログインしてください。');
     }
-  } catch (e) {}
+  } catch (e) {
+    // 通信エラー時はそのまま既存トークンで続行を試みる
+  }
 }
 function showLogin(errorMsg) {
   $('mainScreen').style.display = 'none';
@@ -192,6 +203,7 @@ function showLogin(errorMsg) {
   if (errorMsg) $('loginError').textContent = errorMsg;
 }
 
+/* ---------------- タブ切り替え ---------------- */
 function switchTab(name) {
   ['chat','profile','album'].forEach(t => {
     $(t + 'Screen').classList.toggle('active', t === name);
@@ -204,6 +216,7 @@ $('tabChat').addEventListener('click', () => switchTab('chat'));
 $('tabProfile').addEventListener('click', () => switchTab('profile'));
 $('tabAlbum').addEventListener('click', () => switchTab('album'));
 
+/* ---------------- ログイン ---------------- */
 $('loginBtn').addEventListener('click', async () => {
   const supabaseUrl = $('supabaseUrl').value.replace(/\s+/g, '').replace(/\/+$/, '');
   const anonKey = $('anonKey').value.replace(/\s+/g, '');
@@ -245,6 +258,7 @@ $('loginBtn').addEventListener('click', async () => {
   }
 });
 
+/* ---------------- チャット ---------------- */
 function addBubble(role, text) {
   const el = document.createElement('div');
   el.className = 'bubble ' + role;
@@ -291,6 +305,7 @@ async function sendMessage() {
 $('sendBtn').addEventListener('click', sendMessage);
 $('messageInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
 
+/* ---------------- プロフィール ---------------- */
 async function restGet(path) {
   const res = await fetch(`${session.supabaseUrl}/rest/v1/${path}`, {
     headers: { apikey: session.anonKey, Authorization: `Bearer ${session.accessToken}` },
@@ -397,6 +412,7 @@ $('outfitBtn').addEventListener('click', async () => {
   }
 });
 
+/* ---------------- アルバム ---------------- */
 async function loadAlbum() {
   if (!session) return;
   await refreshSession();
@@ -422,8 +438,15 @@ async function loadAlbum() {
   }
 }
 
+/* ---------------- 起動 ---------------- */
 loadSession();
 if (session && session.accessToken) { showMain(); } else { showLogin(); }
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+  });
+}
 </script>
 
 </body>
