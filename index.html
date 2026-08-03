@@ -294,6 +294,7 @@ function addImageBubble(role, url) {
   el.className = 'bubble ' + role + ' photo';
   const img = document.createElement('img');
   img.src = url;
+  img.onload = () => { $('messages').scrollTop = $('messages').scrollHeight; };
   el.appendChild(img);
   $('messages').appendChild(el);
   $('messages').scrollTop = $('messages').scrollHeight;
@@ -330,6 +331,7 @@ async function loadHistory() {
       if (item.type === 'text') addBubble(item.role, item.content);
       else addImageBubble(item.role, item.url);
     });
+    requestAnimationFrame(() => { $('messages').scrollTop = $('messages').scrollHeight; });
   } catch (e) {
     addBubble('system', '会話履歴の取得エラー: ' + e.message);
   }
