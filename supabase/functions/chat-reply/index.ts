@@ -1,6 +1,9 @@
 // supabase/functions/chat-reply/index.ts
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { CORS_HEADERS } from "../_shared/cors.ts";
+import { json } from "../_shared/response.ts";
+import { resolveUserId } from "../_shared/auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -14,12 +17,6 @@ const HISTORY_LIMIT = 20;
 const MEMORY_LIMIT = 5;
 const SUMMARIZE_EVERY_N_MESSAGES = 20;
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-bypass-token",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: CORS_HEADERS });
@@ -32,37 +29,9 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => null);
 
-    const bypassHeader = req.headers.get("x-bypass-token");
-    const isTestBypass = Boolean(TEST_BYPASS_TOKEN) && bypassHeader === TEST_BYPASS_TOKEN;
-
-    let userId: string;
-
-    if (isTestBypass) {
-      if (!body?.user_id) {
-        return json({ error: "x-bypass-token使用時は user_id を必ずbodyに含めてください" }, 400);
-      }
-      userId = body.user_id;
-    } else {
-      const authHeader = req.headers.get("Authorization");
-      if (!authHeader) return json({ error: "missing authorization" }, 401);
-
-      const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
-      if (userError || !userData?.user) {
-        return json({
-          error: "invalid session",
-          debug: {
-            received_auth_header_prefix: authHeader.slice(0, 15),
-            received_auth_header_length: authHeader.length,
-            bypass_header_received: bypassHeader,
-            test_bypass_token_is_set: Boolean(TEST_BYPASS_TOKEN),
-          },
-        }, 401);
-      }
-      userId = userData.user.id;
-    }
+    const authResult = await resolveUserId(req, body, { SUPABASE_URL, SUPABASE_ANON_KEY, TEST_BYPASS_TOKEN });
+    if (authResult.errorResponse) return authResult.errorResponse;
+    const userId = authResult.userId as string;
 
     const characterId = body?.character_id;
     const channel = body?.channel;
@@ -319,11 +288,4 @@ function clip(value: number) {
 
 function clampScore(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
-}
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json", ...CORS_HEADERS },
-  });
 }

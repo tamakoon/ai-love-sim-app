@@ -11,6 +11,9 @@
 // - レスポンスとして、その場で表示できる期限付き署名URLを返す
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { CORS_HEADERS } from "../_shared/cors.ts";
+import { json } from "../_shared/response.ts";
+import { resolveUserId } from "../_shared/auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -22,11 +25,8 @@ const TEST_BYPASS_TOKEN = Deno.env.get("TEST_BYPASS_TOKEN");
 const GEMINI_MODEL = "gemini-2.5-flash-image";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-bypass-token",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+const NO_TEXT_OVERLAY_INSTRUCTION =
+  "IMPORTANT: Do not include any text, captions, name tags, watermarks, logos, subtitles, or written characters of any kind anywhere in the image. The image must be a plain photo with no overlaid text or UI elements.";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -40,25 +40,9 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => null);
 
-    const bypassHeader = req.headers.get("x-bypass-token");
-    const isTestBypass = Boolean(TEST_BYPASS_TOKEN) && bypassHeader === TEST_BYPASS_TOKEN;
-
-    let userId: string;
-    if (isTestBypass) {
-      if (!body?.user_id) {
-        return json({ error: "x-bypass-token使用時は user_id を必ずbodyに含めてください" }, 400);
-      }
-      userId = body.user_id;
-    } else {
-      const authHeader = req.headers.get("Authorization");
-      if (!authHeader) return json({ error: "missing authorization" }, 401);
-      const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
-      if (userError || !userData?.user) return json({ error: "invalid session" }, 401);
-      userId = userData.user.id;
-    }
+    const authResult = await resolveUserId(req, body, { SUPABASE_URL, SUPABASE_ANON_KEY, TEST_BYPASS_TOKEN });
+    if (authResult.errorResponse) return authResult.errorResponse;
+    const userId = authResult.userId as string;
 
     const characterId = body?.character_id;
     const occasion = body?.occasion ?? null;
@@ -110,7 +94,7 @@ Choose ONE of these two authentic formats naturally:
 (2) Mirror selfie: her reflection in a bathroom or bedroom mirror, phone visibly held up in front of her face in the reflection, casual indoor lighting.
 Casual natural expression, soft indoor lighting.
 This will be used as a reference photo for a consistent character, so keep the face clearly visible and centered.
-IMPORTANT: Do not include any text, captions, name tags, watermarks, logos, subtitles, or written characters of any kind anywhere in the image. The image must be a plain photo with no overlaid text or UI elements.
+${NO_TEXT_OVERLAY_INSTRUCTION}
 `.trim();
     } else if (hasClothing) {
       promptText = `
@@ -121,7 +105,7 @@ Generate a new authentic front-camera selfie photo (or mirror selfie) of the sam
 This must look like an actual photo captured by her own smartphone's front-facing camera or a mirror selfie — NOT a third-person photo of someone taking a selfie.
 Additional context to reflect naturally if relevant: ${contextLine || "a casual everyday moment"}.
 ${appearanceChange ? `Also apply this hairstyle/hair color change while keeping the same face: ${appearanceChange}.` : "Keep her hairstyle and hair color the same as reference image 1."}
-IMPORTANT: Do not include any text, captions, name tags, watermarks, logos, subtitles, or written characters of any kind anywhere in the image. The image must be a plain photo with no overlaid text or UI elements.
+${NO_TEXT_OVERLAY_INSTRUCTION}
 `.trim();
     } else {
       promptText = `
@@ -133,7 +117,7 @@ Choose ONE of these two authentic formats naturally:
 Change the pose, expression, outfit, and background to naturally match this context: ${contextLine || "a casual everyday moment"}.
 ${appearanceChange ? `Also apply this hairstyle/hair color change while keeping the same face: ${appearanceChange}.` : "Keep her hairstyle and hair color the same as the reference photo."}
 Style: natural everyday phone-camera selfie, not overly posed, soft natural lighting.
-IMPORTANT: Do not include any text, captions, name tags, watermarks, logos, subtitles, or written characters of any kind anywhere in the image. The image must be a plain photo with no overlaid text or UI elements.
+${NO_TEXT_OVERLAY_INSTRUCTION}
 `.trim();
     }
 
@@ -276,11 +260,4 @@ function base64ToUint8Array(base64: string): Uint8Array {
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes;
-}
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json", ...CORS_HEADERS },
-  });
 }

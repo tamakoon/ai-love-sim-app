@@ -31,7 +31,6 @@
   .screen.active { display: flex; }
 
   #chatHeader { padding: 14px 16px; border-bottom: 1px solid #26262e; font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-  #chatHeader .status { font-size: 11px; color: #888; font-weight: normal; }
   #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; background: #000; }
   .bubble { max-width: 78%; padding: 10px 14px; border-radius: 16px; font-size: 15px; line-height: 1.5; white-space: pre-wrap; }
   .bubble.character { align-self: flex-start; background: #262626; color: #eee; border-bottom-left-radius: 4px; }
@@ -97,7 +96,7 @@
   <div id="mainScreen">
     <div id="screens">
       <div class="screen active" id="chatScreen">
-        <div id="chatHeader"><span id="characterName">キャラクター</span><span class="status" id="statusText"></span></div>
+        <div id="chatHeader"><span id="characterName">キャラクター</span></div>
         <div id="messages"></div>
         <div id="paramsBar"></div>
         <div id="inputBar">
@@ -254,10 +253,7 @@ $('loginBtn').addEventListener('click', async () => {
   const password = $('password').value;
   if (!supabaseUrl || !anonKey || !email || !password) { $('loginError').textContent = '全項目を入力してください'; return; }
 
-  $('loginError').innerHTML =
-    `診断: URL長=${supabaseUrl.length}文字 / anonKey長=${anonKey.length}文字<br>` +
-    `URL末尾5文字: "${supabaseUrl.slice(-5)}" / anonKey先頭10文字: "${anonKey.slice(0, 10)}"<br>` +
-    `送信中...`;
+  $('loginError').textContent = '';
   $('loginBtn').disabled = true; $('loginBtn').textContent = 'ログイン中...';
 
   let res;
@@ -267,10 +263,7 @@ $('loginBtn').addEventListener('click', async () => {
       body: JSON.stringify({ email, password }),
     });
   } catch (e) {
-    $('loginError').innerHTML =
-      `診断: URL長=${supabaseUrl.length}文字 / anonKey長=${anonKey.length}文字<br>` +
-      `fetch自体が失敗: ${e.name} - ${e.message}<br>` +
-      `使用URL: ${supabaseUrl}/auth/v1/token?grant_type=password`;
+    $('loginError').textContent = `通信エラー: ${e.name} - ${e.message}`;
     $('loginBtn').disabled = false; $('loginBtn').textContent = 'ログイン';
     return;
   }
@@ -350,14 +343,9 @@ $('chatPhotoBtn').addEventListener('click', async () => {
   typing.className = 'typing'; typing.textContent = '写真を送ってくれています...';
   $('messages').appendChild(typing); $('messages').scrollTop = $('messages').scrollHeight;
   try {
-    const res = await fetch(`${session.supabaseUrl}/functions/v1/generate-photo`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}`, apikey: session.anonKey },
-      body: JSON.stringify({ character_id: CHARACTER_ID }),
-    });
-    const data = await res.json();
+    const { ok, data } = await requestGeneratedPhoto({});
     typing.remove();
-    if (!res.ok) { addBubble('system', 'エラー: ' + (data.error || JSON.stringify(data))); return; }
+    if (!ok) { addBubble('system', 'エラー: ' + (data.error || JSON.stringify(data))); return; }
     addImageBubble('character', data.url);
   } catch (e) {
     typing.remove();
@@ -526,6 +514,24 @@ $('submitCreateCharBtn').addEventListener('click', async () => {
   }
 });
 
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function requestGeneratedPhoto(extraBody) {
+  const res = await fetch(`${session.supabaseUrl}/functions/v1/generate-photo`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}`, apikey: session.anonKey },
+    body: JSON.stringify({ character_id: CHARACTER_ID, ...extraBody }),
+  });
+  return { ok: res.ok, data: await res.json() };
+}
+
 $('appearanceChangeBtn').addEventListener('click', async () => {
   if (!session) return;
   const appearanceChange = $('appearanceChangeInput').value.trim();
@@ -536,13 +542,8 @@ $('appearanceChangeBtn').addEventListener('click', async () => {
   $('photoStatus').textContent = '生成中...(10〜20秒ほどかかります)';
   $('photoResult').innerHTML = '';
   try {
-    const res = await fetch(`${session.supabaseUrl}/functions/v1/generate-photo`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}`, apikey: session.anonKey },
-      body: JSON.stringify({ character_id: CHARACTER_ID, appearance_change: appearanceChange }),
-    });
-    const data = await res.json();
-    if (!res.ok) { $('photoStatus').textContent = 'エラー: ' + (data.error || JSON.stringify(data)); return; }
+    const { ok, data } = await requestGeneratedPhoto({ appearance_change: appearanceChange });
+    if (!ok) { $('photoStatus').textContent = 'エラー: ' + (data.error || JSON.stringify(data)); return; }
     $('photoStatus').textContent = '見た目を変更した写真が届きました';
     $('photoResult').innerHTML = `<img src="${data.url}" />`;
   } catch (e) {
@@ -559,13 +560,8 @@ $('photoBtn').addEventListener('click', async () => {
   $('photoStatus').textContent = '生成中...(10〜20秒ほどかかります)';
   $('photoResult').innerHTML = '';
   try {
-    const res = await fetch(`${session.supabaseUrl}/functions/v1/generate-photo`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}`, apikey: session.anonKey },
-      body: JSON.stringify({ character_id: CHARACTER_ID }),
-    });
-    const data = await res.json();
-    if (!res.ok) { $('photoStatus').textContent = 'エラー: ' + (data.error || JSON.stringify(data)); return; }
+    const { ok, data } = await requestGeneratedPhoto({});
+    if (!ok) { $('photoStatus').textContent = 'エラー: ' + (data.error || JSON.stringify(data)); return; }
     $('photoStatus').textContent = data.is_reference_bootstrap ? '基準となる顔写真を生成しました' : '写真が届きました';
     $('photoResult').innerHTML = `<img src="${data.url}" />`;
   } catch (e) {
@@ -574,15 +570,6 @@ $('photoBtn').addEventListener('click', async () => {
     $('photoBtn').disabled = false;
   }
 });
-
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
 
 $('outfitBtn').addEventListener('click', async () => {
   if (!session) return;
@@ -596,17 +583,11 @@ $('outfitBtn').addEventListener('click', async () => {
 
   try {
     const base64 = await fileToBase64(file);
-    const res = await fetch(`${session.supabaseUrl}/functions/v1/generate-photo`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}`, apikey: session.anonKey },
-      body: JSON.stringify({
-        character_id: CHARACTER_ID,
-        clothing_image_base64: base64,
-        clothing_mime_type: file.type || 'image/jpeg',
-      }),
+    const { ok, data } = await requestGeneratedPhoto({
+      clothing_image_base64: base64,
+      clothing_mime_type: file.type || 'image/jpeg',
     });
-    const data = await res.json();
-    if (!res.ok) { $('photoStatus').textContent = 'エラー: ' + (data.error || JSON.stringify(data)); return; }
+    if (!ok) { $('photoStatus').textContent = 'エラー: ' + (data.error || JSON.stringify(data)); return; }
     $('photoStatus').textContent = 'その服を着た写真が届きました';
     $('photoResult').innerHTML = `<img src="${data.url}" />`;
   } catch (e) {

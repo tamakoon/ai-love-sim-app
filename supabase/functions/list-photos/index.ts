@@ -3,17 +3,14 @@
 // Phase1: 過去に生成した写真の一覧を、表示用の署名付きURL付きで返す
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { CORS_HEADERS } from "../_shared/cors.ts";
+import { json } from "../_shared/response.ts";
+import { resolveUserId } from "../_shared/auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const TEST_BYPASS_TOKEN = Deno.env.get("TEST_BYPASS_TOKEN");
-
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-bypass-token",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -27,25 +24,9 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => null);
 
-    const bypassHeader = req.headers.get("x-bypass-token");
-    const isTestBypass = Boolean(TEST_BYPASS_TOKEN) && bypassHeader === TEST_BYPASS_TOKEN;
-
-    let userId: string;
-    if (isTestBypass) {
-      if (!body?.user_id) {
-        return json({ error: "x-bypass-token使用時は user_id を必ずbodyに含めてください" }, 400);
-      }
-      userId = body.user_id;
-    } else {
-      const authHeader = req.headers.get("Authorization");
-      if (!authHeader) return json({ error: "missing authorization" }, 401);
-      const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
-      if (userError || !userData?.user) return json({ error: "invalid session" }, 401);
-      userId = userData.user.id;
-    }
+    const authResult = await resolveUserId(req, body, { SUPABASE_URL, SUPABASE_ANON_KEY, TEST_BYPASS_TOKEN });
+    if (authResult.errorResponse) return authResult.errorResponse;
+    const userId = authResult.userId as string;
 
     const characterId = body?.character_id;
     if (!characterId) return json({ error: "character_id は必須です" }, 400);
@@ -83,10 +64,3 @@ Deno.serve(async (req: Request) => {
     return json({ error: String(e) }, 500);
   }
 });
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json", ...CORS_HEADERS },
-  });
-}
