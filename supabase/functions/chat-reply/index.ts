@@ -139,6 +139,7 @@ ${memoryText || "（まだ特筆すべき記憶はありません）"}
 【現在の状況】
 現在の行動: ${state?.current_activity ?? "不明"}
 気分: ${state?.current_mood ?? "普通"}
+季節: ${getJapaneseSeasonDescriptor(character.timezone)}(服装や体感を聞かれたら、この季節にふさわしい自然な返答をすること)
 
 【チャネル】
 ${channel}（storeなら対面口調、lineなら親しみやすい短文中心）
@@ -287,6 +288,16 @@ ${channel}（storeなら対面口調、lineなら親しみやすい短文中心�
     return json({ error: String(e) }, 500);
   }
 });
+
+function getJapaneseSeasonDescriptor(timezone: string): string {
+  const month = Number(
+    new Intl.DateTimeFormat("en-US", { month: "numeric", timeZone: timezone || "Asia/Tokyo" }).format(new Date()),
+  );
+  if (month >= 3 && month <= 5) return "春(過ごしやすい気温、薄手の上着が欲しい時期)";
+  if (month >= 6 && month <= 8) return "夏(暑くて湿度が高い、薄着・半袖・タンクトップや薄手のパジャマが快適な時期)";
+  if (month >= 9 && month <= 11) return "秋(涼しい、セーターや長袖が欲しくなる時期)";
+  return "冬(寒い、セーターやコート、長袖のパジャマが欲しい時期)";
+}
 
 function computeRuleBasedDelta(messageText: string) {
   const base = messageText.length > 5 ? 1 : 0;

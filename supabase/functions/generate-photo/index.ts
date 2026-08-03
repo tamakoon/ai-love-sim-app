@@ -74,6 +74,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    const seasonDescriptor = getJapaneseSeasonDescriptor(character.timezone);
+
     const contextLine = [
       state?.current_activity ? `現在の行動: ${state.current_activity}` : null,
       state?.current_mood ? `気分: ${state.current_mood}` : null,
@@ -88,6 +90,7 @@ Deno.serve(async (req: Request) => {
 Photorealistic authentic front-camera selfie photo of a young Japanese woman named ${character.name}, ${character.occupation ?? ""}.
 Atmosphere: ${character.base_atmosphere ?? "friendly and warm"}.
 ${assets?.base_generation_prompt ?? ""}
+Current real-world season: ${seasonDescriptor}. Her outfit should naturally fit this season.
 This must look like an actual photo captured by her own smartphone's front-facing camera — NOT a third-person photo of someone taking a selfie.
 Choose ONE of these two authentic formats naturally:
 (1) Direct front-camera selfie: close-up framing where her face fills much of the frame, slight wide-angle lens distortion typical of phone front cameras, extended-arm perspective, phone barely visible or not visible at all.
@@ -115,7 +118,7 @@ Choose ONE of these two authentic formats naturally:
 (1) Direct front-camera selfie: close-up framing where her face fills much of the frame, slight wide-angle lens distortion typical of phone front cameras, extended-arm perspective, phone barely visible or not visible at all.
 (2) Mirror selfie: her reflection in a bathroom or bedroom mirror, phone visibly held up in front of her face in the reflection.
 Change the pose, expression, outfit, and background to naturally match this context: ${contextLine || "a casual everyday moment"}.
-${appearanceChange ? `Also apply this appearance change (clothing, hairstyle, hair color, makeup, accessories, etc.) while keeping the same face and body: ${appearanceChange}.` : "Keep her hairstyle, hair color, and overall appearance the same as the reference photo."}
+${appearanceChange ? `Also apply this appearance change (clothing, hairstyle, hair color, makeup, accessories, etc.) while keeping the same face and body: ${appearanceChange}.` : `Current real-world season: ${seasonDescriptor}. Dress her appropriately for this season (unless the context above implies a specific different outfit), while keeping her hairstyle and hair color the same as the reference photo.`}
 Style: natural everyday phone-camera selfie, not overly posed, soft natural lighting.
 ${NO_TEXT_OVERLAY_INSTRUCTION}
 `.trim();
@@ -254,6 +257,16 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
   }
   return btoa(binary);
+}
+
+function getJapaneseSeasonDescriptor(timezone: string): string {
+  const month = Number(
+    new Intl.DateTimeFormat("en-US", { month: "numeric", timeZone: timezone || "Asia/Tokyo" }).format(new Date()),
+  );
+  if (month >= 3 && month <= 5) return "spring (mild temperature, light jacket or cardigan weather)";
+  if (month >= 6 && month <= 8) return "summer in Japan (hot and humid, thin/light short-sleeve clothing, tank tops, light summer pajamas)";
+  if (month >= 9 && month <= 11) return "autumn (cool, sweater or long-sleeve weather)";
+  return "winter (cold, warm clothing like sweaters, coats, long-sleeve pajamas)";
 }
 
 function base64ToUint8Array(base64: string): Uint8Array {
