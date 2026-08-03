@@ -94,6 +94,7 @@ Deno.serve(async (req: Request) => {
     const { error: assetsError } = await db.from("character_assets").insert({
       character_id: characterId,
       face_reference_paths: [refPath],
+      original_face_reference_path: refPath,
       base_generation_prompt: baseAtmosphere ?? "",
     });
     if (assetsError) {

@@ -67,6 +67,7 @@
   .album-item { position: relative; }
   .album-item img { width: 100%; border-radius: 10px; aspect-ratio: 1; object-fit: cover; display: block; }
   .album-delete-btn { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 50%; border: none; background: rgba(0,0,0,0.6); color: white; font-size: 14px; line-height: 1; }
+  .album-ref-btn { position: absolute; bottom: 6px; left: 6px; right: 6px; padding: 6px 4px; border-radius: 8px; border: none; background: rgba(255,122,69,0.9); color: #10210f; font-size: 11px; font-weight: bold; }
   #albumEmpty { color: #777; font-size: 13px; text-align: center; margin-top: 40px; }
 
   #tabBar { display: flex; border-top: 1px solid #26262e; padding-bottom: env(safe-area-inset-bottom); }
@@ -161,6 +162,7 @@
           <h3>見た目を変える</h3>
           <input type="text" id="appearanceChangeInput" placeholder="例: 白いワンピースを着せる / 髪色をピンクにする / 眼鏡をかけさせる" style="width:100%; padding:10px; border-radius:10px; border:1px solid #444; background:#1c1c22; color:#eee; font-size:13px;" />
           <button id="appearanceChangeBtn" style="width:100%; padding:14px; margin-top:10px; border:none; border-radius:12px; background:#3a3a44; color:white; font-size:15px; font-weight:bold;">✨ この見た目にする</button>
+          <button id="resetReferenceBtn" style="width:100%; padding:12px; margin-top:8px; border:none; border-radius:12px; background:#262626; color:#aaa; font-size:13px;">🔄 元の見た目に戻す</button>
         </div>
 
         <div id="photoStatus"></div>
@@ -589,6 +591,28 @@ async function requestGeneratedPhoto(extraBody) {
   return { ok: res.ok, data: await res.json() };
 }
 
+$('resetReferenceBtn').addEventListener('click', async () => {
+  if (!session) return;
+  if (!confirm('元の見た目に戻しますか？')) return;
+  await refreshSession();
+  $('resetReferenceBtn').disabled = true;
+  $('photoStatus').textContent = '元の見た目に戻しています...';
+  try {
+    const res = await fetch(`${session.supabaseUrl}/functions/v1/set-character-reference`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}`, apikey: session.anonKey },
+      body: JSON.stringify({ character_id: CHARACTER_ID, use_original: true }),
+    });
+    const data = await res.json();
+    if (!res.ok) { $('photoStatus').textContent = 'エラー: ' + (data.error || JSON.stringify(data)); return; }
+    $('photoStatus').textContent = '元の見た目に戻しました。次の写真から反映されます。';
+  } catch (e) {
+    $('photoStatus').textContent = '通信エラー: ' + e.message;
+  } finally {
+    $('resetReferenceBtn').disabled = false;
+  }
+});
+
 $('appearanceChangeBtn').addEventListener('click', async () => {
   if (!session) return;
   const appearanceChange = $('appearanceChangeInput').value.trim();
@@ -696,8 +720,32 @@ async function loadAlbum() {
           delBtn.disabled = false;
         }
       });
+      const refBtn = document.createElement('button');
+      refBtn.className = 'album-ref-btn';
+      refBtn.textContent = '基準にする';
+      refBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!confirm('この写真を今後の基準画像にしますか？')) return;
+        refBtn.disabled = true;
+        try {
+          await refreshSession();
+          const res = await fetch(`${session.supabaseUrl}/functions/v1/set-character-reference`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}`, apikey: session.anonKey },
+            body: JSON.stringify({ character_id: CHARACTER_ID, image_id: p.id }),
+          });
+          const result = await res.json();
+          if (!res.ok) { alert('失敗しました: ' + (result.error || '')); return; }
+          alert('この写真を基準にしました。次の写真から反映されます。');
+        } catch (err) {
+          alert('通信エラー: ' + err.message);
+        } finally {
+          refBtn.disabled = false;
+        }
+      });
       item.appendChild(img);
       item.appendChild(delBtn);
+      item.appendChild(refBtn);
       $('albumGrid').appendChild(item);
     });
   } catch (e) {

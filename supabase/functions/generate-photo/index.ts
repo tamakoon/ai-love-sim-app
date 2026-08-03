@@ -187,6 +187,7 @@ ${NO_TEXT_OVERLAY_INSTRUCTION}
         .from("character_assets")
         .update({
           face_reference_paths: [refPath],
+          original_face_reference_path: refPath,
           updated_at: new Date().toISOString(),
         })
         .eq("character_id", characterId);
