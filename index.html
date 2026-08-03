@@ -37,7 +37,7 @@
   .bubble.user { align-self: flex-end; background: #3ddc61; color: #10210f; border-bottom-right-radius: 4px; }
   .bubble.system { align-self: center; background: transparent; color: #777; font-size: 12px; }
   .bubble.photo { padding: 4px; max-width: 60%; }
-  .bubble.photo img { display: block; width: 100%; border-radius: 12px; }
+  .bubble.photo img { display: block; width: 100%; border-radius: 12px; aspect-ratio: 3 / 4; object-fit: cover; background: #1c1c22; }
   #paramsBar { display: flex; gap: 6px; padding: 8px 16px; overflow-x: auto; border-top: 1px solid #26262e; font-size: 11px; color: #aaa; white-space: nowrap; }
   #paramsBar span { background: #1c1c22; padding: 4px 8px; border-radius: 8px; flex-shrink: 0; }
   #inputBar { display: flex; gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid #26262e; }
@@ -289,15 +289,22 @@ function addBubble(role, text) {
   $('messages').scrollTop = $('messages').scrollHeight;
   return el;
 }
-function addImageBubble(role, url) {
+function addImageBubble(role, url, scrollOnLoad = true) {
   const el = document.createElement('div');
   el.className = 'bubble ' + role + ' photo';
   const img = document.createElement('img');
   img.src = url;
-  img.onload = () => { $('messages').scrollTop = $('messages').scrollHeight; };
+  const loadPromise = new Promise((resolve) => {
+    img.onload = () => {
+      if (scrollOnLoad) $('messages').scrollTop = $('messages').scrollHeight;
+      resolve();
+    };
+    img.onerror = () => resolve();
+  });
   el.appendChild(img);
   $('messages').appendChild(el);
-  $('messages').scrollTop = $('messages').scrollHeight;
+  if (scrollOnLoad) $('messages').scrollTop = $('messages').scrollHeight;
+  el._loadPromise = loadPromise;
   return el;
 }
 function updateParamsBar(stage, params) {
@@ -327,11 +334,17 @@ async function loadHistory() {
       addBubble('system', '会話をはじめましょう');
       return;
     }
+    const loadPromises = [];
     timeline.forEach(item => {
-      if (item.type === 'text') addBubble(item.role, item.content);
-      else addImageBubble(item.role, item.url);
+      if (item.type === 'text') {
+        addBubble(item.role, item.content);
+      } else {
+        const el = addImageBubble(item.role, item.url, false);
+        loadPromises.push(el._loadPromise);
+      }
     });
-    requestAnimationFrame(() => { $('messages').scrollTop = $('messages').scrollHeight; });
+    await Promise.all(loadPromises);
+    $('messages').scrollTop = $('messages').scrollHeight;
   } catch (e) {
     addBubble('system', '会話履歴の取得エラー: ' + e.message);
   }
