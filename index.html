@@ -206,10 +206,10 @@ function saveSession() { localStorage.setItem(STORAGE_KEY, JSON.stringify(sessio
 function showMain() {
   $('loginScreen').style.display = 'none';
   $('mainScreen').style.display = 'flex';
-  refreshSession().finally(() => {
+  refreshSession().finally(async () => {
+    await loadCharacterList();
     loadHistory();
     loadProfile();
-    loadCharacterList();
   });
 }
 
@@ -242,7 +242,7 @@ function switchTab(name) {
     $(t + 'Screen').classList.toggle('active', t === name);
     $('tab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === name);
   });
-  if (name === 'profile') { loadProfile(); loadCharacterList(); }
+  if (name === 'profile') { loadCharacterList().then(loadProfile); }
   if (name === 'album') loadAlbum();
 }
 $('tabChat').addEventListener('click', () => switchTab('chat'));
@@ -457,13 +457,20 @@ async function loadCharacterList() {
     const chars = await restGet(`characters?status=eq.active&select=id,name&order=name`);
     const select = $('characterSelect');
     select.innerHTML = '';
+    let matched = false;
     chars.forEach((c) => {
       const opt = document.createElement('option');
       opt.value = c.id;
       opt.textContent = c.name;
-      if (c.id === CHARACTER_ID) opt.selected = true;
+      if (c.id === CHARACTER_ID) { opt.selected = true; matched = true; }
       select.appendChild(opt);
     });
+    // 保存されていたCHARACTER_IDが実在しない場合、
+    // ブラウザは自動で先頭を選択状態にするが、内部の変数はズレたままになる。
+    // これを防ぐため、実際に選ばれている値に内部状態も合わせる。
+    if (!matched && chars.length > 0) {
+      setActiveCharacter(chars[0].id);
+    }
   } catch (e) {
     console.error('キャラクター一覧取得エラー', e);
   }
