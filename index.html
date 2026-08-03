@@ -344,7 +344,11 @@ async function loadHistory() {
       }
     });
     await Promise.all(loadPromises);
-    $('messages').scrollTop = $('messages').scrollHeight;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        $('messages').scrollTop = $('messages').scrollHeight;
+      });
+    });
   } catch (e) {
     addBubble('system', '会話履歴の取得エラー: ' + e.message);
   }
