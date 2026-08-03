@@ -158,9 +158,9 @@
         </div>
 
         <div class="profile-section">
-          <h3>髪型・髪色を変える</h3>
-          <input type="text" id="appearanceChangeInput" placeholder="例: ショートボブにする / 髪色をピンクにする" style="width:100%; padding:10px; border-radius:10px; border:1px solid #444; background:#1c1c22; color:#eee; font-size:13px;" />
-          <button id="appearanceChangeBtn" style="width:100%; padding:14px; margin-top:10px; border:none; border-radius:12px; background:#3a3a44; color:white; font-size:15px; font-weight:bold;">✂️ この見た目にする</button>
+          <h3>見た目を変える</h3>
+          <input type="text" id="appearanceChangeInput" placeholder="例: 白いワンピースを着せる / 髪色をピンクにする / 眼鏡をかけさせる" style="width:100%; padding:10px; border-radius:10px; border:1px solid #444; background:#1c1c22; color:#eee; font-size:13px;" />
+          <button id="appearanceChangeBtn" style="width:100%; padding:14px; margin-top:10px; border:none; border-radius:12px; background:#3a3a44; color:white; font-size:15px; font-weight:bold;">✨ この見た目にする</button>
         </div>
 
         <div id="photoStatus"></div>
@@ -592,7 +592,7 @@ async function requestGeneratedPhoto(extraBody) {
 $('appearanceChangeBtn').addEventListener('click', async () => {
   if (!session) return;
   const appearanceChange = $('appearanceChangeInput').value.trim();
-  if (!appearanceChange) { $('photoStatus').textContent = '変更したい髪型・髪色を入力してください'; return; }
+  if (!appearanceChange) { $('photoStatus').textContent = '変更したい見た目の内容を入力してください'; return; }
 
   await refreshSession();
   $('appearanceChangeBtn').disabled = true;

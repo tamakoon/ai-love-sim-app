@@ -104,7 +104,7 @@ Reference image 2 shows a clothing item.
 Generate a new authentic front-camera selfie photo (or mirror selfie) of the same person from reference image 1, now wearing the clothing item shown in reference image 2, naturally fitted to her body and pose.
 This must look like an actual photo captured by her own smartphone's front-facing camera or a mirror selfie — NOT a third-person photo of someone taking a selfie.
 Additional context to reflect naturally if relevant: ${contextLine || "a casual everyday moment"}.
-${appearanceChange ? `Also apply this hairstyle/hair color change while keeping the same face: ${appearanceChange}.` : "Keep her hairstyle and hair color the same as reference image 1."}
+${appearanceChange ? `Also apply this appearance change (clothing, hairstyle, hair color, makeup, accessories, etc.) while keeping the same face and body: ${appearanceChange}.` : "Keep her hairstyle, hair color, and overall appearance the same as reference image 1."}
 ${NO_TEXT_OVERLAY_INSTRUCTION}
 `.trim();
     } else {
@@ -115,7 +115,7 @@ Choose ONE of these two authentic formats naturally:
 (1) Direct front-camera selfie: close-up framing where her face fills much of the frame, slight wide-angle lens distortion typical of phone front cameras, extended-arm perspective, phone barely visible or not visible at all.
 (2) Mirror selfie: her reflection in a bathroom or bedroom mirror, phone visibly held up in front of her face in the reflection.
 Change the pose, expression, outfit, and background to naturally match this context: ${contextLine || "a casual everyday moment"}.
-${appearanceChange ? `Also apply this hairstyle/hair color change while keeping the same face: ${appearanceChange}.` : "Keep her hairstyle and hair color the same as the reference photo."}
+${appearanceChange ? `Also apply this appearance change (clothing, hairstyle, hair color, makeup, accessories, etc.) while keeping the same face and body: ${appearanceChange}.` : "Keep her hairstyle, hair color, and overall appearance the same as the reference photo."}
 Style: natural everyday phone-camera selfie, not overly posed, soft natural lighting.
 ${NO_TEXT_OVERLAY_INSTRUCTION}
 `.trim();
