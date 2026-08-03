@@ -216,25 +216,24 @@ ${channel}（storeなら対面口調、lineなら親しみやすい短文中心�
       updated_at: new Date().toISOString(),
     };
 
-    const [messagesResult, paramsUpdateResult, relUpdateResult] = await Promise.all([
-      db.from("messages").insert([
-        {
-          user_id: userId,
-          character_id: characterId,
-          channel,
-          role: "user",
-          content: messageText,
-          metadata: {},
-        },
-        {
-          user_id: userId,
-          character_id: characterId,
-          channel,
-          role: "character",
-          content: parsed.reply,
-          metadata: { emotion_delta: finalDelta, model: "claude-sonnet-5" },
-        },
-      ]),
+    const userMessageResult = await db.from("messages").insert({
+      user_id: userId,
+      character_id: characterId,
+      channel,
+      role: "user",
+      content: messageText,
+      metadata: {},
+    });
+
+    const [characterMessageResult, paramsUpdateResult, relUpdateResult] = await Promise.all([
+      db.from("messages").insert({
+        user_id: userId,
+        character_id: characterId,
+        channel,
+        role: "character",
+        content: parsed.reply,
+        metadata: { emotion_delta: finalDelta, model: "claude-sonnet-5" },
+      }),
       db.from("relationship_parameters").update(updatedParams).eq("relationship_id", rel.id),
       db
         .from("relationships")
@@ -246,7 +245,8 @@ ${channel}（storeなら対面口調、lineなら親しみやすい短文中心�
     ]);
 
     const writeErrors = [
-      messagesResult.error && { step: "messages.insert", message: messagesResult.error.message },
+      userMessageResult.error && { step: "messages.insert(user)", message: userMessageResult.error.message },
+      characterMessageResult.error && { step: "messages.insert(character)", message: characterMessageResult.error.message },
       paramsUpdateResult.error && { step: "relationship_parameters.update", message: paramsUpdateResult.error.message },
       relUpdateResult.error && { step: "relationships.update", message: relUpdateResult.error.message },
     ].filter(Boolean);
