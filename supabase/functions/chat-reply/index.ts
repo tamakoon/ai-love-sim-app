@@ -216,7 +216,7 @@ ${channel}（storeなら対面口調、lineなら親しみやすい短文中心�
       updated_at: new Date().toISOString(),
     };
 
-    await Promise.all([
+    const [messagesResult, paramsUpdateResult, relUpdateResult] = await Promise.all([
       db.from("messages").insert([
         {
           user_id: userId,
@@ -224,6 +224,7 @@ ${channel}（storeなら対面口調、lineなら親しみやすい短文中心�
           channel,
           role: "user",
           content: messageText,
+          metadata: {},
         },
         {
           user_id: userId,
@@ -243,6 +244,17 @@ ${channel}（storeなら対面口調、lineなら親しみやすい短文中心�
         })
         .eq("id", rel.id),
     ]);
+
+    const writeErrors = [
+      messagesResult.error && { step: "messages.insert", message: messagesResult.error.message },
+      paramsUpdateResult.error && { step: "relationship_parameters.update", message: paramsUpdateResult.error.message },
+      relUpdateResult.error && { step: "relationships.update", message: relUpdateResult.error.message },
+    ].filter(Boolean);
+
+    if (writeErrors.length > 0) {
+      console.error("chat-reply DB書き込みエラー:", writeErrors);
+      return json({ error: "DB書き込みに失敗しました", details: writeErrors }, 500);
+    }
 
     if (INTERNAL_SECRET) {
       const { count: totalCount } = await db
