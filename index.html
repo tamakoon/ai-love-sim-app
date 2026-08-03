@@ -111,6 +111,7 @@
           <h3>キャラクター</h3>
           <select id="characterSelect" style="width:100%; padding:10px; border-radius:10px; border:1px solid #444; background:#1c1c22; color:#eee; font-size:14px;"></select>
           <button id="showCreateFormBtn" style="width:100%; padding:10px; margin-top:8px; border:none; border-radius:10px; background:#3a3a44; color:white; font-size:13px;">＋ 新しいキャラクターを追加</button>
+          <button id="deleteCharBtn" style="width:100%; padding:10px; margin-top:8px; border:none; border-radius:10px; background:#4a2020; color:#ff8080; font-size:13px;">🗑 このキャラクターを削除</button>
         </div>
 
         <div class="profile-section" id="createCharacterForm" style="display:none; background:#1c1c22; border-radius:12px; padding:12px;">
@@ -475,6 +476,43 @@ $('characterSelect').addEventListener('change', (e) => {
 $('showCreateFormBtn').addEventListener('click', () => {
   const form = $('createCharacterForm');
   form.style.display = form.style.display === 'none' ? 'block' : 'none';
+});
+
+$('deleteCharBtn').addEventListener('click', async () => {
+  if (!session) return;
+  const select = $('characterSelect');
+  const targetId = select.value;
+  const targetName = select.options[select.selectedIndex]?.textContent || 'このキャラクター';
+  if (!targetId) return;
+
+  if (!confirm(`「${targetName}」を削除しますか？会話・写真・記憶もすべて削除され、元に戻せません。`)) return;
+
+  await refreshSession();
+  $('deleteCharBtn').disabled = true;
+  try {
+    const res = await fetch(`${session.supabaseUrl}/functions/v1/delete-character`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}`, apikey: session.anonKey },
+      body: JSON.stringify({ character_id: targetId }),
+    });
+    const data = await res.json();
+    if (!res.ok) { alert('削除に失敗しました: ' + (data.error || JSON.stringify(data))); return; }
+
+    await loadCharacterList();
+    const remaining = $('characterSelect').options;
+    if (remaining.length > 0) {
+      setActiveCharacter(remaining[0].value);
+    } else {
+      setActiveCharacter(DEFAULT_CHARACTER_ID);
+    }
+    await loadCharacterList();
+    loadProfile();
+    loadHistory();
+  } catch (e) {
+    alert('通信エラー: ' + e.message);
+  } finally {
+    $('deleteCharBtn').disabled = false;
+  }
 });
 
 $('submitCreateCharBtn').addEventListener('click', async () => {

@@ -3,7 +3,7 @@
 // Supabase等への通信には一切関与しない（会話・写真データが古いキャッシュで
 // 返されることを防ぐため、意図的にAPIリクエストはキャッシュ対象から除外）。
 
-const CACHE_NAME = "ailove-shell-v3";
+const CACHE_NAME = "ailove-shell-v4";
 const SHELL_FILES = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (event) => {
