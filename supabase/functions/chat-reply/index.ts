@@ -151,7 +151,7 @@ ${channel}（storeなら対面口調、lineなら親しみやすい短文中心�
 【出力形式】
 必ず以下のJSON形式のみを出力してください。前置き、説明文、Markdownのコードブロック(\`\`\`)は一切付けないでください。
 
-{"reply": "キャラクターとしての返答テキスト", "emotion_delta": {"affection": -5から5の整数, "trust": -5から5の整数, "romance": -5から5の整数, "intimacy": -5から5の整数}, "mood": "会話後の気分を表す短い単語"}
+{"reply": "キャラクターとしての返答テキスト", "emotion_delta": {"affection": -5から5の整数, "trust": -5から5の整数, "romance": -5から5の整数, "intimacy": -5から5の整数}, "mood": "会話後の気分を表す短い単語", "outfit_mentioned": "この返答の中で今着ている服について具体的に言及した場合はその服装を日本語で簡潔に(例: 薄手の半袖パジャマ)。言及していなければnull"}
 `.trim();
 
     const historyMessages = history.map((m: { role: string; content: string }) => ({
@@ -188,6 +188,7 @@ ${channel}（storeなら対面口調、lineなら親しみやすい短文中心�
       reply: string;
       emotion_delta: { affection: number; trust: number; romance: number; intimacy: number };
       mood: string;
+      outfit_mentioned?: string | null;
     };
     try {
       parsed = JSON.parse(rawText);
@@ -255,6 +256,16 @@ ${channel}（storeなら対面口調、lineなら親しみやすい短文中心�
     if (writeErrors.length > 0) {
       console.error("chat-reply DB書き込みエラー:", writeErrors);
       return json({ error: "DB書き込みに失敗しました", details: writeErrors }, 500);
+    }
+
+    if (parsed.outfit_mentioned && typeof parsed.outfit_mentioned === "string") {
+      await db
+        .from("character_state")
+        .update({
+          current_outfit_description: parsed.outfit_mentioned,
+          current_outfit_updated_at: new Date().toISOString(),
+        })
+        .eq("character_id", characterId);
     }
 
     if (INTERNAL_SECRET) {

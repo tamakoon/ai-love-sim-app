@@ -118,7 +118,7 @@ Choose ONE of these two authentic formats naturally:
 (1) Direct front-camera selfie: close-up framing where her face fills much of the frame, slight wide-angle lens distortion typical of phone front cameras, extended-arm perspective, phone barely visible or not visible at all.
 (2) Mirror selfie: her reflection in a bathroom or bedroom mirror, phone visibly held up in front of her face in the reflection.
 Change the pose, expression, outfit, and background to naturally match this context: ${contextLine || "a casual everyday moment"}.
-${appearanceChange ? `Also apply this appearance change (clothing, hairstyle, hair color, makeup, accessories, etc.) while keeping the same face and body: ${appearanceChange}.` : `Current real-world season: ${seasonDescriptor}. Dress her appropriately for this season (unless the context above implies a specific different outfit), while keeping her hairstyle and hair color the same as the reference photo.`}
+${appearanceChange ? `Also apply this appearance change (clothing, hairstyle, hair color, makeup, accessories, etc.) while keeping the same face and body: ${appearanceChange}.` : state?.current_outfit_description ? `She should be wearing: ${state.current_outfit_description} (this is what she recently told the player she's currently wearing in conversation, so keep it consistent). Keep her hairstyle and hair color the same as the reference photo.` : `Current real-world season: ${seasonDescriptor}. Dress her appropriately for this season (unless the context above implies a specific different outfit), while keeping her hairstyle and hair color the same as the reference photo.`}
 Style: natural everyday phone-camera selfie, not overly posed, soft natural lighting.
 ${NO_TEXT_OVERLAY_INSTRUCTION}
 `.trim();
