@@ -365,13 +365,18 @@ async function loadHistory() {
 
 $('chatPhotoBtn').addEventListener('click', async () => {
   if (!session) return;
+  const instruction = $('messageInput').value.trim();
   await refreshSession();
   $('chatPhotoBtn').disabled = true;
+  if (instruction) {
+    $('messageInput').value = '';
+    addBubble('system', `(撮り方の指示: ${instruction})`);
+  }
   const typing = document.createElement('div');
   typing.className = 'typing'; typing.textContent = '写真を送ってくれています...';
   $('messages').appendChild(typing); $('messages').scrollTop = $('messages').scrollHeight;
   try {
-    const { ok, data } = await requestGeneratedPhoto({});
+    const { ok, data } = await requestGeneratedPhoto({ occasion: instruction || undefined });
     typing.remove();
     if (!ok) { addBubble('system', 'エラー: ' + (data.error || JSON.stringify(data))); return; }
     addImageBubble('character', data.url);
