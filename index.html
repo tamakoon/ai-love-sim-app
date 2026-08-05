@@ -488,7 +488,7 @@ $('characterSelect').addEventListener('change', (e) => {
   loadHistory();
 });
 
-const VAPID_PUBLIC_KEY = "BFnatv9oyaQ8XXK-IS5hm5EVrE0LvzOpPpeOvH027Ej9rf8c70MyjvXHcqvvXe81beUaiIvsMHRin2UK6P5-bX0";
+const VAPID_PUBLIC_KEY = "BM6B_UUZAneGXy6DE4CPn8sk7iFSTxBUB7heVM1EtIt_Q3b9k9yj3GfRd-veeyzwx65pbr5AfrCP4tHJMQw8v1I";
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -497,6 +497,17 @@ function urlBase64ToUint8Array(base64String) {
   const outputArray = new Uint8Array(rawData.length);
   for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
   return outputArray;
+}
+
+function applicationServerKeyMatches(sub, desiredKey) {
+  const current = sub.options && sub.options.applicationServerKey;
+  if (!current) return false;
+  const currentBytes = new Uint8Array(current);
+  if (currentBytes.length !== desiredKey.length) return false;
+  for (let i = 0; i < currentBytes.length; i++) {
+    if (currentBytes[i] !== desiredKey[i]) return false;
+  }
+  return true;
 }
 
 function decodeJwtSub(token) {
@@ -520,11 +531,16 @@ $('enableNotifBtn').addEventListener('click', async () => {
     if (permission !== 'granted') { $('notifStatus').textContent = '通知が許可されませんでした'; return; }
 
     const reg = await navigator.serviceWorker.ready;
+    const desiredKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
     let sub = await reg.pushManager.getSubscription();
+    if (sub && !applicationServerKeyMatches(sub, desiredKey)) {
+      await sub.unsubscribe();
+      sub = null;
+    }
     if (!sub) {
       sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: desiredKey,
       });
     }
     const subJson = sub.toJSON();
