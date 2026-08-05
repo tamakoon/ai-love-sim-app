@@ -203,10 +203,13 @@ ${channel}（storeなら対面口調、lineなら親しみやすい短文中心�
     const ruleDelta = computeRuleBasedDelta(messageText);
 
     const finalDelta = {
+      // affection/intimacyはルールベースの加点も意味があるため平均を取る
       affection: clip((ruleDelta.affection + (parsed.emotion_delta?.affection ?? 0)) / 2),
-      trust: clip((ruleDelta.trust + (parsed.emotion_delta?.trust ?? 0)) / 2),
-      romance: clip((ruleDelta.romance + (parsed.emotion_delta?.romance ?? 0)) / 2),
       intimacy: clip((ruleDelta.intimacy + (parsed.emotion_delta?.intimacy ?? 0)) / 2),
+      // trust/romanceはルールベース側が常に0のため、平均を取ると毎回半減してしまう。
+      // AIの判断値をそのまま(クリップのみ)使う。
+      trust: clip(parsed.emotion_delta?.trust ?? 0),
+      romance: clip(parsed.emotion_delta?.romance ?? 0),
     };
 
     const updatedParams = {
