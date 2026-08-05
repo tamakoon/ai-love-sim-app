@@ -93,8 +93,8 @@ ${assets?.base_generation_prompt ?? ""}
 Current real-world season: ${seasonDescriptor}. Her outfit should naturally fit this season.
 This must look like an actual photo captured by her own smartphone's front-facing camera — NOT a third-person photo of someone taking a selfie.
 Choose ONE of these two authentic formats naturally:
-(1) Direct front-camera selfie: close-up framing where her face fills much of the frame, slight wide-angle lens distortion typical of phone front cameras, extended-arm perspective, phone barely visible or not visible at all.
-(2) Mirror selfie: her reflection in a bathroom or bedroom mirror, phone visibly held up in front of her face in the reflection, casual indoor lighting.
+(1) Direct front-camera selfie: close-up framing where her face fills much of the frame, slight wide-angle lens distortion typical of phone front cameras, extended-arm perspective, phone barely visible or not visible at all. Render it with the visual quality of an actual iPhone front (selfie) camera shot: slightly softer detail and narrower dynamic range than a rear-camera photo, natural skin smoothing typical of phone selfie cameras.
+(2) Mirror selfie: her reflection in a bathroom or bedroom mirror, phone visibly held up in front of her face in the reflection, casual indoor lighting. Since this is actually captured using the phone's rear (main) camera pointed at the mirror, render it with the visual quality of an actual iPhone rear camera shot: sharper detail, richer dynamic range and color accuracy, the crisper and more polished look typical of a phone's main camera rather than its front camera.
 Casual natural expression, soft indoor lighting.
 This will be used as a reference photo for a consistent character, so keep the face clearly visible and centered.
 ${NO_TEXT_OVERLAY_INSTRUCTION}
@@ -105,7 +105,7 @@ You are given two reference images.
 Reference image 1 is a photo of a woman's face and identity — keep her face, identity, and body type exactly the same as reference image 1.
 Reference image 2 shows a clothing item.
 Generate a new authentic front-camera selfie photo (or mirror selfie) of the same person from reference image 1, now wearing the clothing item shown in reference image 2, naturally fitted to her body and pose.
-This must look like an actual photo captured by her own smartphone's front-facing camera or a mirror selfie — NOT a third-person photo of someone taking a selfie.
+This must look like an actual photo captured by her own smartphone's front-facing camera or a mirror selfie — NOT a third-person photo of someone taking a selfie. If it's a direct front-camera selfie, render it with the softer detail and narrower dynamic range typical of an iPhone front camera. If it's a mirror selfie (captured via the rear camera), render it with the sharper detail and richer dynamic range typical of an iPhone rear camera.
 Additional context to reflect naturally if relevant: ${contextLine || "a casual everyday moment"}.
 ${appearanceChange ? `Also apply this appearance change (clothing, hairstyle, hair color, makeup, accessories, etc.) while keeping the same face and body: ${appearanceChange}.` : "Keep her hairstyle, hair color, and overall appearance the same as reference image 1."}
 ${NO_TEXT_OVERLAY_INSTRUCTION}
@@ -115,8 +115,8 @@ ${NO_TEXT_OVERLAY_INSTRUCTION}
 Using the reference photo, generate a new authentic front-camera selfie photo of the same person (keep the same face and identity).
 This must look like an actual photo captured by her own smartphone's front-facing camera — NOT a third-person photo of someone taking a selfie.
 Choose ONE of these two authentic formats naturally:
-(1) Direct front-camera selfie: close-up framing where her face fills much of the frame, slight wide-angle lens distortion typical of phone front cameras, extended-arm perspective, phone barely visible or not visible at all.
-(2) Mirror selfie: her reflection in a bathroom or bedroom mirror, phone visibly held up in front of her face in the reflection.
+(1) Direct front-camera selfie: close-up framing where her face fills much of the frame, slight wide-angle lens distortion typical of phone front cameras, extended-arm perspective, phone barely visible or not visible at all. Render it with the visual quality of an actual iPhone front (selfie) camera shot: slightly softer detail and narrower dynamic range than a rear-camera photo, natural skin smoothing typical of phone selfie cameras.
+(2) Mirror selfie: her reflection in a bathroom or bedroom mirror, phone visibly held up in front of her face in the reflection. Since this is actually captured using the phone's rear (main) camera pointed at the mirror, render it with the visual quality of an actual iPhone rear camera shot: sharper detail, richer dynamic range and color accuracy, the crisper and more polished look typical of a phone's main camera rather than its front camera.
 Change the pose, expression, outfit, and background to naturally match this context: ${contextLine || "a casual everyday moment"}.
 ${appearanceChange ? `Also apply this appearance change (clothing, hairstyle, hair color, makeup, accessories, etc.) while keeping the same face and body: ${appearanceChange}.` : state?.current_outfit_description ? `She should be wearing: ${state.current_outfit_description} (this is what she recently told the player she's currently wearing in conversation, so keep it consistent). Keep her hairstyle and hair color the same as the reference photo.` : `Current real-world season: ${seasonDescriptor}. Dress her appropriately for this season (unless the context above implies a specific different outfit), while keeping her hairstyle and hair color the same as the reference photo.`}
 Style: natural everyday phone-camera selfie, not overly posed, soft natural lighting.
