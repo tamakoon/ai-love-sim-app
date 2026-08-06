@@ -2,6 +2,7 @@
 //
 // 目的: 全キャラクターのcharacter_stateを、現在時刻(キャラクターのtimezone基準)に
 // 応じたルールベースのランダム選択で更新する。
+// 日中の活動("day"枠)は、キャラクターの職業(occupation)を反映した表現にする。
 // Scheduler(pg_cron)から定期的に呼び出される想定。
 // クライアントから直接叩けないよう、CRON_SECRETによる認証を必須とする。
 
@@ -19,7 +20,8 @@ const SCHEDULE: Record<string, SlotDef> = {
     moods: ["眠い", "すっきり", "普通"],
   },
   day: {
-    activities: ["仕事中", "接客中", "ランチ休憩中", "会議中"],
+    // occupationがあればここに差し込む(下のbuildDayActivitiesで組み立てる)
+    activities: [],
     moods: ["集中している", "忙しい", "普通"],
   },
   evening: {
@@ -48,6 +50,17 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function buildDayActivities(occupation: string | null): string[] {
+  if (occupation && occupation.trim().length > 0) {
+    return [
+      `${occupation}の仕事中`,
+      `${occupation}の仕事の休憩中`,
+      "ランチ休憩中",
+    ];
+  }
+  return ["仕事中", "接客中", "ランチ休憩中", "会議中"];
+}
+
 Deno.serve(async (req: Request) => {
   try {
     if (req.method !== "POST") {
@@ -63,7 +76,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: characters, error } = await db
       .from("characters")
-      .select("id, timezone")
+      .select("id, timezone, occupation")
       .eq("status", "active");
 
     if (error) return json({ error: error.message }, 500);
@@ -78,7 +91,8 @@ Deno.serve(async (req: Request) => {
       );
       const slot = timeSlotFor(hour);
       const def = SCHEDULE[slot];
-      const activity = pick(def.activities);
+      const activityList = slot === "day" ? buildDayActivities(c.occupation) : def.activities;
+      const activity = pick(activityList);
       const mood = pick(def.moods);
 
       await db.from("character_state").upsert(
